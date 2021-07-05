@@ -11,7 +11,7 @@
 import matplotlib as mpl
 mpl.rcParams['figure.dpi']= 150
 import matplotlib.pyplot as plt
-
+import sys
 import numpy as np
 import segyio
 import math
@@ -51,7 +51,7 @@ class dataset:
             self.ns =self.ns /downS
             # Get offset, CDP and SourceX for each trace
             offset_shot = np.zeros(self.ntr)
-            CDP_shot = np.zeros(self.ntr,dtype=np.int)
+            CDP_shot = np.zeros(self.ntr,dtype=np.int64)
             SourceX_shot = np.zeros(self.ntr)
             self.receivX = np.zeros(self.ntr)
             for i in range (self.ntr):
@@ -95,7 +95,7 @@ class wavefrontAttbt:
             # Get number of traces ntr & number of samples ns
             ns = ns /downS
             # Get offset, CDP and SourceX for each trace
-            CDP_shot = np.zeros(ntr,dtype=np.int)
+            CDP_shot = np.zeros(ntr,dtype=np.int64())
             SourceX_shot = np.zeros(ntr)
             self.receivX = np.zeros(ntr)
             for i in range (ntr):
@@ -113,9 +113,10 @@ class wavefrontAttbt:
     
     def  Rad_ratio(self):
         shape=list(self.Rn.shape)
+        epsilon = 0.0001
         fRn=self.Rn.flatten()
         fRnip=self.Rnip.flatten()
-        c=np.exp(-(np.abs(fRn-fRnip)/np.abs(fRn+fRnip)))
+        c=np.exp(-(np.abs(fRn-fRnip)/np.abs(fRn+fRnip+epsilon)))
         self.ratio=np.reshape(c, shape)
     
 
@@ -153,7 +154,10 @@ class cdp_gathers:
             self.vnmo2_cdp[j]= (2*v0*self.Rnip_cdp[j])/(t0*np.cos(np.deg2rad(self.alpha_cdp[j]))**2)
             for i in range(ntr_cdp):
                 # compute time shift [s] no vnmo**2, bc variable is defined as the square of vnmo
-                tshift = np.sqrt(t0**2 + (self.offset_cdp[i]**2/self.vnmo2_cdp[j])) 
+                if self.vnmo2_cdp[j] != 0:
+                    tshift = np.sqrt(t0**2 + (self.offset_cdp[i]**2/self.vnmo2_cdp[j]))
+                if self.vnmo2_cdp[j] == 0:
+                    tshift = np.nan
                 # discrete time shift [time samples]
                 if not math.isinf(tshift) and not math.isnan(tshift):
                     ntshift = (int)(tshift/dt)
@@ -198,14 +202,17 @@ class cdp_gathers:
             t0 = t[j]
             for i in range(ntr_cdp):
                 # discrete time shift [time samples]
-                tshift = np.sqrt(t0**2 + (self.offset_cdp[i]**2/self.vnmo2_cdp[j])) 
+                if self.vnmo2_cdp[j] != 0:
+                    tshift = np.sqrt(t0**2 + (self.offset_cdp[i]**2/self.vnmo2_cdp[j]))
+                if self.vnmo2_cdp[j] == 0:
+                    tshift = np.nan
                 if not math.isinf(tshift) and not math.isnan(tshift):
                     ntshift = (int)(tshift/dt)
                     if(ntshift < ns-1 and self.offset_cdp[i] < max_offset):
                         self.cdp_traces_diff[i,ntshift] = cdp_traces_nmo[i,j]
             if Schalter == 1 and self.ratio_cdp[j] <= 1 + float(tolerance) and self.ratio_cdp[j] >= 1 - float(tolerance): 
                 ##enhance diffractions
-                  cdp_traces_nmo[:,j]= cdp_traces_nmo[:,j]*(abs(np.exp(-a**2 * abs((self.ratio_cdp[j]-1)))))
+                  cdp_traces_nmo[:,j]= cdp_traces_nmo[:,j]*(abs(np.exp(0.5**2 * abs((j*dt)))))
                 
         
         
@@ -350,17 +357,6 @@ rawdata='CRS_diffmodel_4_dirmute.su'
 dir_mute_shot=dataset(0,0,0,0,0,0,0,0,0,0)
 name=dir_mute_shot
 CDP_shot, offset_shot,t, SourceX_shot =dir_mute_shot.load_section('model_4/', dir_mute_shot, rawdata,'muted DW shot', downS)
-icdp =100
-cdp_name= ('cdp_' + str(icdp))
-cdp_100=cdp_gathers(0,0,0,0,0,0,0,0,0)
-cdp_100.extract_cdp_gather(icdp,dir_mute_shot.CDP, CDP_shot, dir_mute_shot.data, offset_shot, dir_mute_shot.SourceX, dir_mute_shot.receivX)
-cdp_100.extract_wfA(icdp, dir_mute_shot.CDP, wfA.Rn,1,len(dir_mute_shot.CDP))
-cdp_100.extract_wfA(icdp, dir_mute_shot.CDP, wfA.Rnip,2, len(dir_mute_shot.CDP))
-cdp_100.extract_wfA(icdp, dir_mute_shot.CDP, wfA.alpha,3, len(dir_mute_shot.CDP))
-cdp_100.extract_wfA(icdp, dir_mute_shot.CDP, wfA.ratio,4, len(dir_mute_shot.CDP))
-cdp_100.extract_wfA(icdp, dir_mute_shot.CDP, wfA.PFZ,5,len(dir_mute_shot.CDP))
-cdp_100.extract_wfA(icdp, dir_mute_shot.CDP, wfA.coherence,6,len(dir_mute_shot.CDP))
-cdp_traces_nmo_full = cdp_100.apply_nmo_corr(t,100000, 0.3,0,0.3, 2000, 1)
 
 
 # In[5]:
@@ -462,7 +458,7 @@ ntr_Sx=len(nSx)
 nSx = nSx[mark_idx]
 shot_names=[]
 ## set export_processed_dat ==1 to export manipulated data, set ==0 to export raw data
-export_processed_data=0
+export_processed_data=1
 j=1
 for iSx in nSx:
     number = int(iSx)
@@ -478,13 +474,13 @@ for shot_name in shot_names:
     ntr_inshot = np.size(np.where(all_SourceX == Snum))
     shots[shot_name] = shot_gathers(Snum,dir_mute_shot.data.shape[1], ntr_inshot)
     ## aus den arrays mit den de-nmokorrigierten traces aus allen cdp werden jeweils alle Spuren eines Schusses in gather sortiert
-    if export_processed_data ==1:
+    if export_processed_data == 1:
         shots[shot_name].extract_shot_gather(all_traces_diff[::,1::], all_SourceX, all_receivX, downS)
-    if  export_processed_data ==0:
+    if export_processed_data == 0:
         shots[shot_name].extract_shot_gather(all_traces_ncorr[::,::], all_SourceX, all_receivX, downS)
-    else:
+    if export_processed_data != 0 and export_processed_data != 1:
         print('switch export_processed_data set incorrectly must either be 1 or 0')
-        quit()
+        sys.exit()
     ### file wird unstrukturiert exportiert
     spec = segyio.spec()
     spec.ns = shots[shot_name].data.shape[1]

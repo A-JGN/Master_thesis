@@ -6,7 +6,7 @@ If you use the software, which is distributed without warranty, please reference
 Jegen, A., Rabbel, Wolfgang, Köhn, Daniel, 2022. Development and evaluation of a novel diffraction focussed FWI approach applied to near-surface seismic data from the Eckernförder Bay area. https://doi.org/10.13140/RG.2.2.32007.88486
 
 
-Wavefront Attributes were determined using the 2D CRS with global optimization software (https://www.wit.uni-hamburg.de/research/software/crs.html)
+Wavefront Attributes were determined using the 2D CRS with global optimization software (https://www.wit.uni-hamburg.de/research/software/crs.html)\n
 Reference:
 Nelder, J. A., & Mead, R. (1965). A simplex method for function minimization. The computer journal, 7(4), 308-313.
 Whitley, Darrell. "A genetic algorithm tutorial." Statistics and computing 4.2 (1994): 65-85.

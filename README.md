@@ -1,6 +1,9 @@
 # Master_thesis
 Diffraction separation based on wavefront attributes derived from CRS stack.
 This is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.0 of the License only.
+If you use the software, which is distributed without warranty, please reference :
+Jegen, A., Rabbel, Wolfgang, Köhn, Daniel, 2022. Development and evaluation of a novel diffraction focussed FWI approach applied to near-surface seismic data from the Eckernförder Bay area. https://doi.org/10.13140/RG.2.2.32007.88486
+
 
 Wavefront Attributes were determined using the 2D CRS with global optimization software (https://www.wit.uni-hamburg.de/research/software/crs.html)
 Reference:
